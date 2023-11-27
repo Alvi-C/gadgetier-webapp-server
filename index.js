@@ -35,8 +35,34 @@ async function run() {
         // Connect the client to the server (optional starting in v4.7)
         await client.connect();
 
-        // create database and collections to store data
+        // create database
         const database = client.db(DB_NAME);
+        /* -----------------all mongoDB connections----------------- */
+        const userCollection = database.collection('users');
+
+        /* ----------------------user api---------------------- */
+
+        //// user add to database api
+        app.post("/users", async (req, res) => {
+            try {
+                const user = req.body;
+                // Insert email if the user doesn't exist
+                const query = { email: user.email };
+                const existingUser = await userCollection.findOne(query);
+                if (existingUser) {
+                    return res.send({ message: "User already exists", insertedId: null });
+                }
+                const result = await userCollection.insertOne(user);
+                res.send(result);
+            } catch (error) {
+                console.error("Error adding user:", error);
+                res.status(500).send({ message: "Internal server error" });
+            }
+        });
+
+
+
+
 
 
 
