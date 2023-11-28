@@ -43,15 +43,16 @@ async function run() {
         /* ----------------------jwt api---------------------- */
 
         app.post("/jwt", (req, res) => {
+            // console.log(req.body);
             try {
-                const user = req.body;
+                const user = req.body
                 const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
                     expiresIn: "1h",
                 });
-                res.send({ token });
+                res.send({ token })
             } catch (error) {
-                console.error("Error creating JWT:", error);
-                res.status(500).send({ message: "Internal server error" });
+                console.error("Error creating JWT:", error)
+                res.status(500).send({ message: "Internal server error" })
             }
         });
 
@@ -59,40 +60,40 @@ async function run() {
         const verifyToken = (req, res, next) => {
             // console.log('inside verified token: ', req.headers.authorization);
             if (!req.headers.authorization) {
-                return res.status(401).send('unauthorized access');
+                return res.status(401).send('unauthorized access')
             }
-            const token = req.headers.authorization.split(' ')[1];
+            const token = req.headers.authorization.split(' ')[1]
             jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
                 if (err) {
                     return res.status(403).send({ message: 'forbidden access' })
                 }
-                req.decoded = decoded;
-                next();
+                req.decoded = decoded
+                next()
             })
         }
 
         //// verify admin middleware
         const verifyAdmin = async (req, res, next) => {
-            const decodedEmail = req.decoded.email;
-            const query = { email: decodedEmail };
-            const user = await userCollection.findOne(query);
-            const isAdmin = user?.role === 'admin';
+            const decodedEmail = req.decoded.email
+            const query = { email: decodedEmail }
+            const user = await userCollection.findOne(query)
+            const isAdmin = user?.role === 'admin'
             if (!isAdmin) {
                 return res.status(403).send({ message: 'forbidden access' })
             }
-            next();
+            next()
         }
 
         //// verify moderator middleware
         const verifyModerator = async (req, res, next) => {
-            const decodedEmail = req.decoded.email;
-            const query = { email: decodedEmail };
-            const user = await userCollection.findOne(query);
-            const isModerator = user?.role === 'moderator';
+            const decodedEmail = req.decoded.email
+            const query = { email: decodedEmail }
+            const user = await userCollection.findOne(query)
+            const isModerator = user?.role === 'moderator'
             if (!isModerator) {
                 return res.status(403).send({ message: 'forbidden access' })
             }
-            next();
+            next()
         }
 
 
@@ -102,32 +103,70 @@ async function run() {
         //// add user to database api
         app.post("/users", async (req, res) => {
             try {
-                const userData = req.body;
+                const userData = req.body
+                // console.log(userData);
                 // Insert email if the user doesn't exist
-                const query = { email: userData.email };
-                const existingUser = await userCollection.findOne(query);
+                const query = { email: userData.email }
+                const existingUser = await userCollection.findOne(query)
                 if (existingUser) {
-                    return res.send({ message: "User already exists", insertedId: null });
+                    return res.send({ message: "User already exists", insertedId: null })
                 }
-                const result = await userCollection.insertOne(userData);
-                res.send(result);
+                const result = await userCollection.insertOne(userData)
+                res.send(result)
             } catch (error) {
-                console.error("Error adding user:", error);
-                res.status(500).send({ message: "Internal server error" });
+                console.error("Error adding user:", error)
+                res.status(500).send({ message: "Internal server error" })
             }
         });
 
         //// get all user data from database api
-        app.get("/users", async (req, res) => {
+        app.get("/users", verifyToken, verifyAdmin, async (req, res) => {
             try {
                 const result = await userCollection.find().toArray();
-                res.send(result);
+                res.send(result)
             } catch (error) {
-                console.error("Error getting user data:", error);
-                res.status(500).send({ message: "Internal server error" });
+                console.error("Error getting user data:", error)
+                res.status(500).send({ message: "Internal server error" })
             }
         });
 
+        //// admin api
+        app.get('/users/admin/:email', verifyToken, async (req, res) => {
+            const email = req.params.email
+            // check email is admin or not
+            // if (req.decoded.email !== email) {
+            //     return res.status(403).send({ message: 'forbidden access' })
+            // }
+
+            // if email is admin send admin is true
+            const query = { email: email }
+            const user = await userCollection.findOne(query)
+            let admin = false
+            if (user?.role === 'admin') {
+                admin = true
+            }
+            // res.send({ admin })
+            res.send({ admin })
+        })
+
+        //// moderator api
+        app.get('/users/moderator/:email', verifyToken, async (req, res) => {
+            const email = req.params.email
+            // console.log(email);
+            // check email is moderator or not
+            // if (req.decoded.email !== email) {
+            //     return res.status(403).send({ message: 'forbidden access' })
+            // }
+
+            // if email is moderator send moderator is true
+            const query = { email: email }
+            const user = await userCollection.findOne(query)
+            let moderator = false;
+            if (user?.role === 'moderator') {
+                moderator = true;
+            }
+            res.send({ moderator })
+        })
 
 
 
