@@ -39,6 +39,7 @@ async function run() {
         const database = client.db(DB_NAME);
         /* -----------------all mongoDB connections----------------- */
         const userCollection = database.collection('users');
+        const productCollection = database.collection('products');
 
         /* ----------------------jwt api---------------------- */
 
@@ -119,6 +120,20 @@ async function run() {
             }
         });
 
+        //// get a single user data from database api
+        app.get("/users/:email", async (req, res) => {
+            try {
+                const email = req.params.email
+                // console.log(email);
+                const query = { email: email }
+                const result = await userCollection.findOne(query)
+                res.send(result)
+            } catch (error) {
+                console.error("Error getting user data:", error)
+                res.status(500).send({ message: "Internal server error" })
+            }
+        });
+
         //// get all user data from database api
         app.get("/users", verifyToken, verifyAdmin, async (req, res) => {
             try {
@@ -168,11 +183,19 @@ async function run() {
             res.send({ moderator })
         })
 
-
-
-
-
-
+        /* ----------------------all product related api---------------------- */
+        //// post product by user api
+        app.post("/products", async (req, res) => {
+            try {
+                const productData = req.body
+                // console.log(productData);
+                const result = await productCollection.insertOne(productData)
+                res.send(result)
+            } catch (error) {
+                console.error("Error adding product:", error)
+                res.status(500).send({ message: "Internal server error" })
+            }
+        })
 
 
         // Send a ping to confirm a successful connection
