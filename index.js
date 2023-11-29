@@ -183,7 +183,7 @@ async function run() {
             res.send({ moderator })
         })
 
-        /* ----------------------all product related api---------------------- */
+        /* ----------------------all product related api for user---------------------- */
         //// post product by user api
         app.post("/products", async (req, res) => {
             try {
@@ -196,6 +196,86 @@ async function run() {
                 res.status(500).send({ message: "Internal server error" })
             }
         })
+
+        //// get specific users products by user's email api
+        app.get('/products/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email };
+            const products = await productCollection.find(query).toArray();
+            res.send(products);
+        });
+
+        // app.get('/health', async (req, res) => {
+        //     res.send({ message: 'OK' });
+        // })
+
+        //// get a specific product by id api
+        app.get('/updateProduct/:id', async (req, res) => {
+            try {
+                const id = req.params.id;
+                // console.log(id);
+                const query = { _id: new ObjectId(id) };
+                const product = await productCollection.findOne(query);
+
+                if (!product) {
+                    return res.status(404).send({ message: 'Product not found' });
+                }
+
+                res.send(product);
+            } catch (error) {
+                console.error('Error fetching product:', error);
+                res.status(500).send({ message: 'Internal server error' });
+            }
+        });
+
+
+        //// update three specific fields of a product api
+        app.patch('/updateProduct/:id', async (req, res) => {
+            try {
+                const id = req.params.id;
+                const { productName, productImage, description } = req.body;
+                const filter = { _id: new ObjectId(id) };
+                const updateDoc = {
+                    $set: {
+                        productName: productName,
+                        image: productImage,
+                        description: description
+                    }
+                };
+
+                const result = await productCollection.updateOne(filter, updateDoc);
+                if (result.matchedCount === 0) {
+                    return res.status(404).send({ message: 'Product not found' });
+                }
+
+                res.send({ message: 'Product updated successfully', result });
+            } catch (error) {
+                console.error('Error updating product:', error);
+                res.status(500).send({ message: 'Error updating product', error: error.message });
+            }
+        });
+
+        //// delete a product api
+        app.delete('/deleteProduct/:id', async (req, res) => {
+            try {
+                const id = req.params.id;
+                const query = { _id: new ObjectId(id) };
+                const result = await productCollection.deleteOne(query);
+
+                if (result.deletedCount === 0) {
+                    return res.status(404).send({ message: 'Product not found' });
+                } else {
+                    res.send({ message: 'Product deleted successfully', result });
+                }
+            } catch (error) {
+                console.error('Error deleting product:', error);
+                res.status(500).send({ message: 'Error deleting product', error: error.message });
+            }
+        });
+
+        /* ----------------------all product related api for moderator---------------------- */
+
+
 
 
         // Send a ping to confirm a successful connection
