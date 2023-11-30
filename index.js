@@ -283,10 +283,9 @@ async function run() {
 
         /* ----------------------all admin pannel api for moderator---------------------- */
         //// get all pending product api
-        app.get('/allPendingProducts', verifyToken, verifyModerator, async (req, res) => {
+        app.get('/allRequestProducts', verifyToken, verifyModerator, async (req, res) => {
             try {
-                const query = { status: 'pending' };
-                const pendingProducts = await productCollection.find(query).toArray();
+                const pendingProducts = await productCollection.find().toArray();
                 res.status(200).send(pendingProducts);
             } catch (error) {
                 console.error('Error fetching pending products:', error);
@@ -319,6 +318,94 @@ async function run() {
                 res.status(500).send({ message: 'Internal server error.' });
             }
         });
+
+        //// reject a pending product api
+        app.patch('/rejectProduct/:id', verifyToken, verifyModerator, async (req, res) => {
+            try {
+                const id = req.params.id;
+                const filter = { _id: new ObjectId(id) };
+                const updateDoc = {
+                    $set: {
+                        status: 'rejected'
+                    }
+                };
+
+                // Perform the update operation on the collection
+                const result = await productCollection.updateOne(filter, updateDoc);
+
+                if (result.modifiedCount === 1) {
+                    res.status(200).send({ message: 'Product rejected successfully.', result });
+                } else {
+                    res.status(404).send({ message: 'Product not found.' });
+                }
+            } catch (error) {
+                console.error(error);
+                res.status(500).send({ message: 'Internal server error.' });
+            }
+        });
+
+        //// featured a product api
+        app.patch('/createFeatured/:id', verifyToken, verifyModerator, async (req, res) => {
+            try {
+                const id = req.params.id;
+                const filter = { _id: new ObjectId(id) };
+                const updateDoc = {
+                    $set: {
+                        featured: 'yes'
+                    }
+                };
+
+                // Perform the update operation on the collection
+                const result = await productCollection.updateOne(filter, updateDoc);
+
+                if (result.modifiedCount === 1) {
+                    res.status(200).send({ message: 'Product is featured now.', result });
+                } else {
+                    res.status(404).send({ message: 'Product not found.' });
+                }
+            } catch (error) {
+                console.error(error);
+                res.status(500).send({ message: 'Internal server error.' });
+            }
+        });
+
+        //// cancel a featured product api
+        app.patch('/cancelFeatured/:id', verifyToken, verifyModerator, async (req, res) => {
+            try {
+                const id = req.params.id;
+                const filter = { _id: new ObjectId(id) };
+                const updateDoc = {
+                    $set: {
+                        featured: 'no'
+                    }
+                };
+
+                // Perform the update operation on the collection
+                const result = await productCollection.updateOne(filter, updateDoc);
+
+                if (result.modifiedCount === 1) {
+                    res.status(200).send({ message: 'Product featured is canceled.', result });
+                } else {
+                    res.status(404).send({ message: 'Product not found.' });
+                }
+            } catch (error) {
+                console.error(error);
+                res.status(500).send({ message: 'Internal server error.' });
+            }
+        });
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
