@@ -394,8 +394,60 @@ async function run() {
             }
         });
 
+        //----------------------//
+        //// get all reported product api
+        app.get('/allReportedProducts', verifyToken, verifyModerator, async (req, res) => {
+            try {
+                const query = { reported: 'yes' };
+                const reportedProducts = await productCollection.find(query).toArray();
+                res.status(200).send(reportedProducts);
+            } catch (error) {
+                console.error('Error fetching reported products:', error);
+                res.status(500).send({ message: 'Internal server error' });
+            }
+        });
 
+        //// cancel the report of a reported product api
+        app.patch('/cancelReport/:id', verifyToken, verifyModerator, async (req, res) => {
+            try {
+                const id = req.params.id;
+                const filter = { _id: new ObjectId(id) };
+                const updateDoc = {
+                    $set: {
+                        reported: 'no'
+                    }
+                };
 
+                // Perform the update operation on the collection
+                const result = await productCollection.updateOne(filter, updateDoc);
+
+                if (result.modifiedCount === 1) {
+                    res.status(200).send({ message: 'Product report is canceled.', result });
+                } else {
+                    res.status(404).send({ message: 'Product not found.' });
+                }
+            } catch (error) {
+                console.error(error);
+                res.status(500).send({ message: 'Internal server error.' });
+            }
+        });
+
+        //// delete a reported product api from database
+        app.delete('/deleteReportedProduct/:id', verifyToken, verifyModerator, async (req, res) => {
+            try {
+                const id = req.params.id;
+                const query = { _id: new ObjectId(id) };
+                const result = await productCollection.deleteOne(query);
+
+                if (result.deletedCount === 1) {
+                    res.status(200).send({ message: 'Product successfully deleted', result });
+                } else {
+                    res.status(404).send({ message: 'No product found with the specified ID' });
+                }
+            } catch (error) {
+                res.status(500).send({ message: 'An error occurred while deleting the product', error: error.message });
+            }
+        });
 
 
 
