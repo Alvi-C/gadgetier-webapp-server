@@ -18,6 +18,18 @@ app.get("/", (req, res) => {
     res.send("Gadgetier server is running");
 });
 
+// ----------health check----------------------
+app.get('/health', async (req, res) => {
+    res.send({ message: 'OK' });
+})
+app.put('/health', async (req, res) => {
+    const update = await productCollection.updateMany({}, { $set: { featured: "no" } });
+    res.send({ message: 'OK' });
+})
+// --------------------------------
+
+
+
 // --------database connection--------
 // Accessing Secrets
 const { MONGO_URI, DB_NAME } = process.env;
@@ -183,7 +195,7 @@ async function run() {
             res.send({ moderator })
         })
 
-        /* ----------------------all product related api for user---------------------- */
+        /* ----------------------all admin pannel api for user---------------------- */
         //// post product by user api
         app.post("/products", async (req, res) => {
             try {
@@ -204,10 +216,6 @@ async function run() {
             const products = await productCollection.find(query).toArray();
             res.send(products);
         });
-
-        // app.get('/health', async (req, res) => {
-        //     res.send({ message: 'OK' });
-        // })
 
         //// get a specific product by id api
         app.get('/updateProduct/:id', async (req, res) => {
@@ -273,7 +281,46 @@ async function run() {
             }
         });
 
-        /* ----------------------all product related api for moderator---------------------- */
+        /* ----------------------all admin pannel api for moderator---------------------- */
+        //// get all pending product api
+        app.get('/allPendingProducts', verifyToken, verifyModerator, async (req, res) => {
+            try {
+                const query = { status: 'pending' };
+                const pendingProducts = await productCollection.find(query).toArray();
+                res.status(200).send(pendingProducts);
+            } catch (error) {
+                console.error('Error fetching pending products:', error);
+                res.status(500).send({ message: 'Internal server error' });
+            }
+        });
+
+        //// approve a pending product api
+        app.patch('/acceptProduct/:id', verifyToken, verifyModerator, async (req, res) => {
+            try {
+                const id = req.params.id;
+                // console.log('line no: 301: ', id);
+                const filter = { _id: new ObjectId(id) };
+                const updateDoc = {
+                    $set: {
+                        status: 'approved'
+                    }
+                };
+
+                // Perform the update operation on the collection
+                const result = await productCollection.updateOne(filter, updateDoc);
+
+                if (result.modifiedCount === 1) {
+                    res.status(200).send({ message: 'Product approved successfully.', result });
+                } else {
+                    res.status(404).send({ message: 'Product not found.' });
+                }
+            } catch (error) {
+                console.error(error);
+                res.status(500).send({ message: 'Internal server error.' });
+            }
+        });
+
+
 
 
 
