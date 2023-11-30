@@ -52,6 +52,7 @@ async function run() {
         /* -----------------all mongoDB connections----------------- */
         const userCollection = database.collection('users');
         const productCollection = database.collection('products');
+        const reviewCollection = database.collection('reviews');
 
         /* ----------------------jwt api---------------------- */
 
@@ -555,8 +556,99 @@ async function run() {
             }
         })
 
+        /* ----------------------Homepage api---------------------- */
+        //// get featured products api only 4 items
+        app.get('/featuredProducts', async (req, res) => {
+            try {
+                const query = { featured: 'yes' };
+                const cursor = productCollection.find(query);
+                const products = await cursor.limit(4).toArray();
+                res.send(products);
+            } catch (error) {
+                console.error(error);
+                res.status(500).send({ message: 'Internal server error.' });
+            }
+        })
 
+        //// get all products api with pagination sorting 8 items per page
+        app.get('/showProducts', async (req, res) => {
+            try {
+                const page = parseInt(req.query.page) || 1;
+                const limit = parseInt(req.query.limit) || 8;
+                const sort = req.query.sort || 'createdAt';
 
+                const skip = (page - 1) * limit;
+
+                const query = {};
+                const cursor = productCollection.find(query).sort({ [sort]: 1 }).skip(skip).limit(limit);
+                const products = await cursor.toArray();
+                const totalProducts = await productCollection.countDocuments(query);
+
+                res.send({
+                    products,
+                    totalProducts,
+                    page,
+                    totalPages: Math.ceil(totalProducts / limit),
+                });
+            } catch (error) {
+                console.error(error);
+                res.status(500).send({ message: 'Internal server error.' });
+            }
+        });
+
+        //// get a single product api
+        app.get('/product/:id', async (req, res) => {
+            try {
+                const id = req.params.id;
+                const query = { _id: new ObjectId(id) };
+                const product = await productCollection.findOne(query);
+                res.send(product);
+            } catch (error) {
+                console.error(error);
+                res.status(500).send({ message: 'Internal server error.' });
+            }
+        });
+
+        //// post a review api
+        app.post('/postReview', async (req, res) => {
+            try {
+                const { userEmail, productId } = req.body;
+                const existingReview = await reviewCollection.findOne({ userEmail, productId });
+
+                if (existingReview) {
+                    // If a review already exists, send a message to the user
+                    res.status(409).send({ message: 'You have already reviewed this product.' });
+                } else {
+                    // If no review exists, insert the new review
+                    const review = req.body;
+                    const result = await reviewCollection.insertOne(review);
+                    res.send(result);
+                }
+            } catch (error) {
+                console.error(error);
+                res.status(500).send({ message: 'Internal server error.' });
+            }
+        });
+
+        //// get all the reviews according to the product id api
+        app.get('/allReviews/:id', async (req, res) => {
+
+            try {
+                const productId = req.params.id;
+                const query = { productId: productId };
+                const reviews = await reviewCollection.find(query).toArray();
+                console.log('line no 640:', reviews);
+
+                if (reviews.length > 0) {
+                    res.send(reviews);
+                } else {
+                    res.status(404).send({ message: 'No reviews found for this product.' });
+                }
+            } catch (error) {
+                console.error(error);
+                res.status(500).send({ message: 'Internal server error.' });
+            }
+        });
 
 
 
