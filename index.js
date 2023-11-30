@@ -281,7 +281,7 @@ async function run() {
             }
         });
 
-        /* ----------------------all admin pannel api for moderator---------------------- */
+        /* ----------------------admin pannel api for moderator---------------------- */
         //// get all pending product api
         app.get('/allRequestProducts', verifyToken, verifyModerator, async (req, res) => {
             try {
@@ -449,11 +449,111 @@ async function run() {
             }
         });
 
+        /* ----------------------admin pannel api for admin---------------------- */
+        //// make a user as moderator api
+        app.patch('/makeModerator/:id', verifyToken, verifyAdmin, async (req, res) => {
+            try {
+                const id = req.params.id;
+                const filter = { _id: new ObjectId(id) };
+                const updateDoc = {
+                    $set: {
+                        role: 'moderator',
+                        status: 'verified'
+                    }
+                };
+
+                // Perform the update operation on the collection
+                const result = await userCollection.updateOne(filter, updateDoc);
+
+                if (result.modifiedCount === 1) {
+                    res.status(200).send({ message: 'User is moderator now.', result });
+                } else {
+                    res.status(404).send({ message: 'user not found.' });
+                }
+            } catch (error) {
+                console.error(error);
+                res.status(500).send({ message: 'Internal server error.' });
+            }
+        })
+
+        //// cancel a user's moderator role api
+        app.patch('/cancelModerator/:id', verifyToken, verifyAdmin, async (req, res) => {
+            try {
+                const id = req.params.id;
+                const filter = { _id: new ObjectId(id) };
+                const updateDoc = {
+                    $set: {
+                        role: 'user',
+                        status: 'unverified'
+                    }
+                };
+
+                // Perform the update operation on the collection
+                const result = await userCollection.updateOne(filter, updateDoc);
+
+                if (result.modifiedCount === 1) {
+                    res.status(200).send({ message: 'User is no longer moderator now.', result });
+                } else {
+                    res.status(404).send({ message: 'user not found.' });
+                }
+            } catch (error) {
+                console.error(error);
+                res.status(500).send({ message: 'Internal server error.' });
+            }
+        })
 
 
+        //// make a user as admin api
+        app.patch('/makeAdmin/:id', verifyToken, verifyAdmin, async (req, res) => {
+            try {
+                const id = req.params.id;
+                const filter = { _id: new ObjectId(id) };
+                const updateDoc = {
+                    $set: {
+                        role: 'admin',
+                        status: 'verified'
+                    }
+                };
 
+                // Perform the update operation on the collection
+                const result = await userCollection.updateOne(filter, updateDoc);
 
+                if (result.modifiedCount === 1) {
+                    res.status(200).send({ message: 'User is admin now.', result });
+                } else {
+                    res.status(404).send({ message: 'user not found.' });
+                }
+            } catch (error) {
+                console.error(error);
+                res.status(500).send({ message: 'Internal server error.' });
+            }
+        })
 
+        //// cancel a user's admin role api
+        app.patch('/cancelAdmin/:id', verifyToken, verifyAdmin, async (req, res) => {
+            try {
+                const id = req.params.id;
+                const filter = { _id: new ObjectId(id) };
+                const updateDoc = {
+                    $set: {
+                        role: 'user',
+                        status: 'unverified'
+                    }
+                };
+
+                // Perform the update operation on the collection
+                const result = await userCollection.updateOne(filter, updateDoc);
+
+                if (result.modifiedCount === 1) {
+                    res.status(200).send({ message: 'User is no longer admin now.', result });
+                } else {
+                    res.status(404).send({ message: 'user not found.' });
+                }
+            } catch (error) {
+                console.error(error);
+                res.status(500).send({ message: 'Internal server error.' });
+            }
+        })
 
 
 
