@@ -53,6 +53,7 @@ async function run() {
         const userCollection = database.collection('users');
         const productCollection = database.collection('products');
         const reviewCollection = database.collection('reviews');
+        const userVotesCollection = database.collection('userVotes');
 
         /* ----------------------jwt api---------------------- */
 
@@ -637,7 +638,7 @@ async function run() {
                 const productId = req.params.id;
                 const query = { productId: productId };
                 const reviews = await reviewCollection.find(query).toArray();
-                console.log('line no 640:', reviews);
+                // console.log('line no 640:', reviews);
 
                 if (reviews.length > 0) {
                     res.send(reviews);
@@ -651,6 +652,64 @@ async function run() {
         });
 
 
+        //// get products by id
+        app.get('/singleProduct/:productId', async (req, res) => {
+            try {
+                const productId = req.params.productId;
+                const product = await productCollection.findOne({ _id: productId });
+
+                if (product) {
+                    res.send({
+                        ...product,
+                        posterUserId: product.userId // Send the poster's user ID
+                    });
+                } else {
+                    res.status(404).send({ message: 'Product not found.' });
+                }
+            } catch (error) {
+                console.error(error);
+                res.status(500).send({ message: 'Internal server error.' });
+            }
+        });
+
+        //// vote api
+        app.post('/vote/:productId', async (req, res) => {
+            try {
+                const productId = req.params.productId;
+                const { userId, voteType } = req.body;
+
+                // Fetch the product to check if the user is trying to vote on their own product
+                const product = await productCollection.findOne({ _id: productId });
+
+                if (!product) {
+                    return res.status(404).send({ message: 'Product not found.' });
+                }
+
+                if (product.userId === userId) {
+                    return res.status(403).send({ message: "You cannot vote on your own product." });
+                }
+
+                // Check if the user has already voted for this product
+                const existingVote = await userVotesCollection.findOne({ userId, productId });
+
+                if (existingVote) {
+                    return res.status(409).send({ message: 'You have already voted for this product.' });
+                }
+
+                // Update the product's vote count
+                const voteField = voteType === 'upVote' ? 'upVote' : 'downVote';
+                const update = { $inc: { [voteField]: 1 } };
+                await productCollection.updateOne({ _id: productId }, update);
+
+                // Record the user's vote
+                await userVotesCollection.insertOne({ userId, productId, voteType });
+
+                res.send({ message: 'Vote recorded successfully.' });
+            } catch (error) {
+                console.error(error);
+                res.status(500).send({ message: 'Internal server error.' });
+            }
+        });
 
 
 
